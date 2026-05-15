@@ -1,9 +1,11 @@
 import { BrowserWindow } from 'electron'
-import { listAndroidDevices, startAndroidTracking } from './android-driver'
-import { listHarmonyDevices, startHarmonyTracking } from './harmony-driver'
+import { listAndroidDevices } from './android/mapper'
+import { startAndroidTracker } from './android/tracker'
+import { listHarmonyDevices } from './harmony/mapper'
+import { startHarmonyTracker } from './harmony/tracker'
 import type { UnifiedDevice } from './types'
 
-const CHANGED_CHANNEL = 'devices:list-changed' as const
+export const CHANGED_CHANNEL = 'devices:list-changed' as const
 
 let snapshot: UnifiedDevice[] = []
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -49,14 +51,17 @@ export async function startDeviceDiscovery(): Promise<void> {
   }
   started = true
   await refresh()
-  const android = await startAndroidTracking(scheduleRefresh).catch(() => null)
+
+  const android = await startAndroidTracker(scheduleRefresh).catch(() => null)
   if (android) {
     androidStop = android.stop
   }
-  const harmony = await startHarmonyTracking(scheduleRefresh).catch(() => null)
+
+  const harmony = await startHarmonyTracker(scheduleRefresh).catch(() => null)
   if (harmony) {
     harmonyStop = harmony.stop
   }
+
   if (pollTimer === null) {
     pollTimer = setInterval(() => {
       scheduleRefresh()
@@ -80,5 +85,3 @@ export function stopDeviceDiscovery(): void {
   }
   snapshot = []
 }
-
-export { CHANGED_CHANNEL }

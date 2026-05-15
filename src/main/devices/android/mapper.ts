@@ -1,18 +1,8 @@
-import { Adb } from '@devicefarmer/adbkit'
-import type { Client } from '@devicefarmer/adbkit'
 import type { Device } from '@devicefarmer/adbkit'
-import type { UnifiedDevice, UnifiedDeviceState } from './types'
-import { resolveAdbExecutable } from './toolkit-paths'
+import type { UnifiedDevice, UnifiedDeviceState } from '../types'
+import { getAdbClient } from './client'
 
-let adbClient: Client | null = null
-
-function getAdbClient(): Client {
-  if (!adbClient) {
-    adbClient = Adb.createClient({ bin: resolveAdbExecutable() })
-  }
-  return adbClient
-}
-
+/** ADB 设备类型映射为统一状态 */
 function mapAdbType(type: Device['type']): UnifiedDeviceState {
   switch (type) {
     case 'device':
@@ -27,7 +17,7 @@ function mapAdbType(type: Device['type']): UnifiedDeviceState {
   }
 }
 
-/** 参考 AYA：优先各厂商市场名属性，否则 manufacturer + model */
+/** 获取 Android 设备显示名称 */
 function getAndroidDisplayName(properties: Record<string, string>): string {
   const marketKeys = [
     'ro.oppo.market.name',
@@ -52,6 +42,7 @@ function getAndroidDisplayName(properties: Record<string, string>): string {
   return (properties['ro.product.name'] ?? '').trim() || 'Android 设备'
 }
 
+/** 构建 Android 设备标签 */
 function buildAndroidLabel(
   displayName: string,
   serial: string,
@@ -70,6 +61,7 @@ function buildAndroidLabel(
   return `${displayName} (${serial})${tail}`
 }
 
+/** 基础映射（不含设备详情） */
 export function mapAdbDeviceFallback(device: Device): UnifiedDevice {
   const typeLabel =
     device.type === 'emulator' ? '模拟器' : device.type === 'device' ? '设备' : device.type
@@ -84,13 +76,14 @@ export function mapAdbDeviceFallback(device: Device): UnifiedDevice {
   }
 }
 
-async function enrichAndroidDevice(device: Device): Promise<UnifiedDevice> {
+/** 补充设备详情 */
+async function enrichDevice(device: Device): Promise<UnifiedDevice> {
   const base = mapAdbDeviceFallback(device)
   if (device.type !== 'device' && device.type !== 'emulator') {
     return base
   }
   try {
-    const props = await Promise.resolve(getAdbClient().getDevice(device.id).getProperties())
+    const props = await getAdbClient().getDevice(device.id).getProperties()
     const displayName = getAndroidDisplayName(props)
     const androidVersion = props['ro.build.version.release']?.trim() || undefined
     const sdkVersion = props['ro.build.version.sdk']?.trim() || undefined
@@ -106,28 +99,8 @@ async function enrichAndroidDevice(device: Device): Promise<UnifiedDevice> {
   }
 }
 
+/** 获取所有 Android 设备 */
 export async function listAndroidDevices(): Promise<UnifiedDevice[]> {
-  const list = await Promise.resolve(getAdbClient().listDevices())
-  return Promise.all(list.map((d) => enrichAndroidDevice(d)))
-}
-
-export async function startAndroidTracking(onEvent: () => void): Promise<{ stop: () => void }> {
-  const tracker = await Promise.resolve(getAdbClient().trackDevices())
-  const notify = (): void => {
-    onEvent()
-  }
-  tracker.on('add', notify)
-  tracker.on('remove', notify)
-  tracker.on('change', notify)
-  tracker.on('changeSet', notify)
-  tracker.on('error', () => {
-    notify()
-  })
-  notify()
-  return {
-    stop: () => {
-      tracker.removeAllListeners()
-      tracker.end()
-    },
-  }
+  const list = await getAdbClient().listDevices()
+  return Promise.all(list.map((d) => enrichDevice(d)))
 }

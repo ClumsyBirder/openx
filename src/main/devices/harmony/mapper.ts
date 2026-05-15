@@ -1,18 +1,7 @@
-import { Hdc } from 'hdckit'
-import type { Client } from 'hdckit'
-import type { UnifiedDevice } from './types'
-import { resolveHdcExecutable } from './toolkit-paths'
+import type { UnifiedDevice } from '../types'
+import { getHdcClient } from './client'
 
-let hdcClient: Client | null = null
-
-function getHdcClient(): Client {
-  if (!hdcClient) {
-    hdcClient = Hdc.createClient({ bin: resolveHdcExecutable() })
-  }
-  return hdcClient
-}
-
-/** 参考 ECHO hdc：从 `const.product.software.version` 中解析 OpenHarmony 版本段 */
+/** 从软件版本字符串解析 OpenHarmony 版本号 */
 function parseOhosVersion(softwareVersion: string): string {
   const s = softwareVersion.trim()
   if (!s) {
@@ -30,6 +19,7 @@ function parseOhosVersion(softwareVersion: string): string {
   return ver.trim()
 }
 
+/** 构建 Harmony 设备标签 */
 function buildHarmonyLabel(
   displayName: string,
   connectKey: string,
@@ -48,6 +38,7 @@ function buildHarmonyLabel(
   return `${displayName} (${connectKey})${tail}`
 }
 
+/** 基础映射（不含设备详情） */
 export function mapHarmonyTargetFallback(connectKey: string): UnifiedDevice {
   return {
     id: `harmony:${connectKey}`,
@@ -59,7 +50,8 @@ export function mapHarmonyTargetFallback(connectKey: string): UnifiedDevice {
   }
 }
 
-async function enrichHarmonyTarget(connectKey: string): Promise<UnifiedDevice> {
+/** 补充设备详情 */
+async function enrichTarget(connectKey: string): Promise<UnifiedDevice> {
   const base = mapHarmonyTargetFallback(connectKey)
   try {
     const parameters = await getHdcClient().getTarget(connectKey).getParameters()
@@ -80,26 +72,8 @@ async function enrichHarmonyTarget(connectKey: string): Promise<UnifiedDevice> {
   }
 }
 
+/** 获取所有 Harmony 设备 */
 export async function listHarmonyDevices(): Promise<UnifiedDevice[]> {
   const targets = await getHdcClient().listTargets()
-  return Promise.all(targets.map((key) => enrichHarmonyTarget(key)))
-}
-
-export async function startHarmonyTracking(onEvent: () => void): Promise<{ stop: () => void }> {
-  const tracker = await getHdcClient().trackTargets()
-  const notify = (): void => {
-    onEvent()
-  }
-  tracker.on('add', notify)
-  tracker.on('remove', notify)
-  tracker.on('error', () => {
-    notify()
-  })
-  notify()
-  return {
-    stop: () => {
-      tracker.removeAllListeners()
-      tracker.end()
-    },
-  }
+  return Promise.all(targets.map((key) => enrichTarget(key)))
 }
