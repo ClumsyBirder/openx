@@ -14,8 +14,10 @@ import {
   TrendingUp,
   PiggyBank,
   CreditCard,
-  Receipt
+  Receipt,
 } from 'lucide-react'
+import { useDevicesStore } from '../stores/devices'
+import { Badge } from '@/components/ui/badge'
 
 // 交易记录类型
 interface Transaction {
@@ -52,13 +54,6 @@ const savingsAccount = {
   balance: 15420.50
 }
 
-// 右侧面板数据
-const upcomingPayments = [
-  { name: 'Netflix Subscription', amount: -15.99, date: '28 Oct' },
-  { name: 'Spotify Premium', amount: -9.99, date: '30 Oct' },
-  { name: 'Amazon Prime', amount: -14.99, date: '15 Nov' },
-]
-
 const expensesByCategory = [
   { name: 'Shopping', amount: 241.31, percentage: 32, color: 'bg-blue-500' },
   { name: 'Food', amount: 180.50, percentage: 24, color: 'bg-green-500' },
@@ -68,6 +63,12 @@ const expensesByCategory = [
 ]
 
 export function DashboardPage(): React.JSX.Element {
+  // 测试 Zustand store
+  const devices = useDevicesStore((s) => s.devices)
+  const selectedId = useDevicesStore((s) => s.selectedId)
+  const refresh = useDevicesStore((s) => s.refresh)
+  const selectedDevice = devices.find((d) => d.id === selectedId)
+
   const [isAccountExpanded, setIsAccountExpanded] = useState(true)
   const [isSavingsExpanded, setIsSavingsExpanded] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -236,37 +237,39 @@ export function DashboardPage(): React.JSX.Element {
 
       {/* 右侧边栏 */}
       <aside className="w-80 flex flex-col gap-6 overflow-auto">
-        {/* 即将到账/待支付 */}
+        {/* 设备信息卡片 - 测试 useDevices hook */}
         <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" />
-            Upcoming Payments
-          </h3>
-          <div className="space-y-3">
-            {upcomingPayments.map((payment, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{payment.name}</p>
-                  <p className="text-xs text-muted-foreground">{payment.date}</p>
-                </div>
-                <span className="text-sm font-medium text-destructive">
-                  {formatCurrency(Math.abs(payment.amount))}
-                </span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-primary" />
+              已连接设备
+            </h3>
+            <button
+              onClick={refresh}
+              className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+              title="刷新设备"
+            >
+            </button>
           </div>
+
+
+          {/* 当前选中设备详情 */}
+          {selectedDevice && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-muted-foreground">当前设备</span>
+                <Badge variant={selectedDevice.state === 'online' ? 'default' : 'secondary'} className="text-xs">
+                  {selectedDevice.state}
+                </Badge>
+              </div>
+              <div className="text-sm font-medium">{selectedDevice.label}</div>
+              {selectedDevice.connectionKey && (
+                <code className="text-xs text-muted-foreground break-all">{selectedDevice.connectionKey}</code>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 推广横幅 */}
-        <div className="bg-gradient-to-br from-primary to-primary/70 rounded-2xl p-5 text-primary-foreground">
-          <h3 className="text-lg font-semibold mb-2">Limited Time Offer!</h3>
-          <p className="text-sm opacity-90 mb-4">
-            Get 3% cashback on all your purchases this month. No minimum required.
-          </p>
-          <button className="w-full py-2 bg-primary-foreground text-primary rounded-xl font-medium hover:bg-primary-foreground/90 transition-colors">
-            Learn More
-          </button>
-        </div>
 
         {/* 本月支出饼图 */}
         <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">

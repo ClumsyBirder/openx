@@ -9,11 +9,17 @@ import {
   Sun,
   Moon,
 } from 'lucide-react'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
+import { useDevicesStore } from '../stores/devices'
 import type { UnifiedDevice } from '../../../shared/unified-device'
 
-/** 版本摘要：Android 显示系统版本 + API；鸿蒙显示 OpenHarmony 版本 + API */
+/**
+ * 获取设备版本摘要信息
+ *
+ * @param device - 统一设备对象
+ * @returns 版本描述字符串，Android 显示"系统版本 · API级别"，鸿蒙显示"OpenHarmony版本 · API级别"
+ */
 function versionSummary(device: UnifiedDevice): string {
   if (device.platform === 'android') {
     const sys = device.androidVersion ? `Android ${device.androidVersion}` : ''
@@ -25,59 +31,50 @@ function versionSummary(device: UnifiedDevice): string {
   return [oh, api].filter(Boolean).join(' · ')
 }
 
-function deviceIcon(device: UnifiedDevice): React.JSX.Element {
+/**
+ * 根据设备平台返回对应图标
+ *
+ * @param device - 统一设备对象
+ * @returns 平台对应的图标组件
+ */
+function DeviceIcon({ device }: { device: UnifiedDevice }): React.JSX.Element {
   if (device.platform === 'harmony') {
     return <Tablet className="w-4 h-4 shrink-0 text-muted-foreground" />
   }
   return <Smartphone className="w-4 h-4 shrink-0 text-muted-foreground" />
 }
 
+/**
+ * 应用标题栏组件
+ *
+ * 包含设备选择下拉框、主题切换和窗口控制按钮。
+ * 标题栏内容根据当前选中设备动态显示。
+ */
 export function Header(): React.JSX.Element {
   const { theme, setTheme } = useTheme()
+  const devices = useDevicesStore((s) => s.devices)
+  const selectedId = useDevicesStore((s) => s.selectedId)
+  const setSelectedId = useDevicesStore((s) => s.setSelectedId)
+  const selectedDevice = devices.find((d) => d.id === selectedId)
+
   const [isMaximized, setIsMaximized] = useState(false)
-  const [devices, setDevices] = useState<UnifiedDevice[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const selectedDevice = selectedId ? devices.find((d) => d.id === selectedId) : undefined
-
-  const syncSelection = useCallback((list: UnifiedDevice[]) => {
-    setDevices(list)
-    setSelectedId((prev) => {
-      if (prev && list.some((d) => d.id === prev)) {
-        return prev
-      }
-      const firstOnline = list.find((d) => d.state === 'online')
-      if (firstOnline) {
-        return firstOnline.id
-      }
-      return list[0]?.id ?? null
-    })
-  }, [])
-
-  useEffect(() => {
-    const api = window.api?.devices
-    if (!api) {
-      return
-    }
-    void api.list().then(syncSelection)
-    const unsub = api.onListChanged(syncSelection)
-    return unsub
-  }, [syncSelection])
-
+  // 监听窗口最大化状态
   useEffect(() => {
     const checkMaximized = async () => {
       if (!window.api?.window?.isMaximized) return
       const maximized = await window.api.window.isMaximized()
       setIsMaximized(maximized)
     }
-    checkMaximized()
+    void checkMaximized()
 
     const interval = setInterval(checkMaximized, 500)
     return () => clearInterval(interval)
   }, [])
 
+  // 点击外部关闭下拉框
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -129,7 +126,7 @@ export function Header(): React.JSX.Element {
         {isDropdownOpen && (
           <div className="absolute top-full left-0 mt-1 min-w-56 max-w-[min(100vw-8rem,24rem)] bg-background border border-border rounded-lg shadow-lg py-1 z-50">
             {devices.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">未连接设备（请接入 USB 或启动模拟器 / 确认 hdc 在 PATH）</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">未连接设备</div>
             ) : (
               devices.map((device) => (
                 <button
@@ -143,11 +140,13 @@ export function Header(): React.JSX.Element {
                     selectedId === device.id ? 'text-primary font-medium' : ''
                   }`}
                 >
-                  {deviceIcon(device)}
-                  <span className="min-w-0 flex-1 flex flex-col items-start gap-0.5" title={device.label}>
-                    <span className="font-medium leading-snug truncate w-full">{device.displayName}</span>
-                    <span className="text-xs text-muted-foreground leading-snug truncate w-full">
-                      {[versionSummary(device), device.connectionKey].filter(Boolean).join(' · ')}
+                  <DeviceIcon device={device} />
+                  <span
+                    className="min-w-0 flex-1 flex flex-col items-start gap-0.5"
+                    title={device.label}
+                  >
+                    <span className="font-medium leading-snug truncate w-full">
+                      {device.displayName}
                     </span>
                   </span>
                   {device.state !== 'online' && (

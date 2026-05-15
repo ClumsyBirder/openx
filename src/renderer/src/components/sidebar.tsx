@@ -1,9 +1,7 @@
 import {
   Home,
-  Box,
-  ListTodo,
-  Bug,
   Settings,
+  AppWindow,
   Key,
   ArrowDownWideNarrow
 } from 'lucide-react'
@@ -16,9 +14,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { id: 'home', icon: <Home className="w-5 h-5" />, label: '首页' },
-  { id: 'box', icon: <Box className="w-5 h-5" />, label: '盒子' },
-  { id: 'todo', icon: <ListTodo className="w-5 h-5" />, label: '待办' },
-  { id: 'bug', icon: <Bug className="w-5 h-5" />, label: 'Bug' },
+  { id: 'apps', icon: <AppWindow className="w-5 h-5" />, label: '应用列表' },
   { id: 'global-variables', icon: <Key className="w-5 h-5" />, label: '全局变量' }
 ]
 

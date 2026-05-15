@@ -109,7 +109,7 @@ export function GlobalVariablesPage() {
       }
       if (keyword.trim()) params.keyword = keyword.trim()
       if (typeFilter) params.var_type = typeFilter as GlobalVariableType
-      
+
       const response = await globalVariablesApi.list(params)
       console.log(response)
       setVariables(response.items)
@@ -249,9 +249,9 @@ export function GlobalVariablesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       {/* 筛选区域 */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 shrink-0 mb-6">
         <div className="relative flex-1 min-w-[200px] max-w-[300px]">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -286,94 +286,96 @@ export function GlobalVariablesPage() {
       </div>
 
       {/* 数据表格 */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">变量名称</TableHead>
-              <TableHead className="w-[100px]">类型</TableHead>
-              <TableHead>值</TableHead>
-              <TableHead>描述</TableHead>
-              <TableHead className="w-[160px]">更新时间</TableHead>
-              <TableHead className="w-[100px] text-right">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {variables.length === 0 ? (
+      <div className="flex-1 overflow-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {keyword || typeFilter ? "没有找到匹配的变量" : "暂无全局变量，点击上方按钮创建"}
-                </TableCell>
+                <TableHead className="w-[180px]">变量名称</TableHead>
+                <TableHead className="w-[100px]">类型</TableHead>
+                <TableHead>值</TableHead>
+                <TableHead>描述</TableHead>
+                <TableHead className="w-[160px]">更新时间</TableHead>
+                <TableHead className="w-[100px] text-right">操作</TableHead>
               </TableRow>
-            ) : (
-              variables.map((v) => (
-                <TableRow key={v.id}>
-                  <TableCell className="font-medium">{v.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getTypeStyle(v.var_type)}>
-                      {getTypeLabel(v.var_type)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 font-mono text-sm">
-                      <span className="truncate max-w-[200px]">{maskValue(v)}</span>
-                      {(v.var_type === "secret" || v.var_type === "json" || v.var_type === "list") && (
-                        <button
-                          onClick={() => toggleShowValue(v.id)}
-                          className="shrink-0 text-xs text-muted-foreground hover:text-foreground underline"
-                        >
-                          {showValueIds.has(v.id) ? "收起" : "展开"}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => copyValue(v)}
-                        className="shrink-0 text-muted-foreground hover:text-foreground"
-                        title="复制"
-                      >
-                        <Copy className="size-3.5" />
-                      </button>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {v.description || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {formatDate(v.updated_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => openEdit(v)}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => confirmDelete(v.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {variables.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    {keyword || typeFilter ? "没有找到匹配的变量" : "暂无全局变量，点击上方按钮创建"}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
+              ) : (
+                variables.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell className="font-medium">{v.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getTypeStyle(v.var_type)}>
+                        {getTypeLabel(v.var_type)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 font-mono text-sm">
+                        <span className="truncate max-w-[200px]">{maskValue(v)}</span>
+                        {(v.var_type === "secret" || v.var_type === "json" || v.var_type === "list") && (
+                          <button
+                            onClick={() => toggleShowValue(v.id)}
+                            className="shrink-0 text-xs text-muted-foreground hover:text-foreground underline"
+                          >
+                            {showValueIds.has(v.id) ? "收起" : "展开"}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => copyValue(v)}
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                          title="复制"
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {v.description || "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {formatDate(v.updated_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => openEdit(v)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => confirmDelete(v.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* 分页器 */}
       {!loading && total > 0 && (
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2 shrink-0 pt-4 mt-auto">
           <span className="text-sm text-muted-foreground">共 {total} 条数据，第 {currentPage}/{totalPages} 页</span>
           <Pagination className="w-auto mx-0">
             <PaginationContent>
@@ -410,7 +412,7 @@ export function GlobalVariablesPage() {
 
       {/* 新建/编辑弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="min-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "编辑变量" : "新建变量"}</DialogTitle>
             <DialogDescription>
