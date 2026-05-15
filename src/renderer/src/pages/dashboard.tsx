@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   ChevronDown,
   ChevronUp,
@@ -15,9 +15,13 @@ import {
   PiggyBank,
   CreditCard,
   Receipt,
+  Camera,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useDevicesStore } from '../stores/devices'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 // 交易记录类型
 interface Transaction {
@@ -72,6 +76,26 @@ export function DashboardPage(): React.JSX.Element {
   const [isAccountExpanded, setIsAccountExpanded] = useState(true)
   const [isSavingsExpanded, setIsSavingsExpanded] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const [capturing, setCapturing] = useState(false)
+
+  const handleCapture = useCallback(async () => {
+    if (!selectedId) {
+      toast.error('请先选择设备')
+      return
+    }
+    setCapturing(true)
+    try {
+      const result = await window.api.screencap.capture(selectedId)
+      if (result.ok) {
+        setScreenshotUrl(`data:${result.mimeType};base64,${result.data}`)
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setCapturing(false)
+    }
+  }, [selectedId])
 
   const handleCopy = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text)
@@ -270,6 +294,39 @@ export function DashboardPage(): React.JSX.Element {
           )}
         </div>
 
+        {/* 设备截图 */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Camera className="w-4 h-4 text-primary" />
+              设备截图
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleCapture()}
+              disabled={!selectedId || capturing}
+            >
+              {capturing ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 mr-1" />
+              )}
+              截图
+            </Button>
+          </div>
+          {screenshotUrl ? (
+            <img
+              src={screenshotUrl}
+              alt="设备截图"
+              className="w-full rounded-lg border border-border bg-muted/30"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-40 rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+              {selectedId ? '点击上方按钮获取截图' : '未选择设备'}
+            </div>
+          )}
+        </div>
 
         {/* 本月支出饼图 */}
         <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">

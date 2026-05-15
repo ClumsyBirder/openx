@@ -1,5 +1,8 @@
+import { createLogger } from '../../lib/log'
 import type { UnifiedDevice } from '../types'
 import { getHdcClient } from './client'
+
+const logger = createLogger('harmonyMapper')
 
 /** 从软件版本字符串解析 OpenHarmony 版本号 */
 function parseOhosVersion(softwareVersion: string): string {
@@ -67,7 +70,8 @@ async function enrichTarget(connectKey: string): Promise<UnifiedDevice> {
       sdkVersion,
       label: buildHarmonyLabel(displayName, connectKey, ohosVersion, sdkVersion),
     }
-  } catch {
+  } catch (e) {
+    logger.warn('enrichTarget failed', { connectKey, error: e })
     return base
   }
 }

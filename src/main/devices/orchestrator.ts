@@ -1,11 +1,13 @@
 import { BrowserWindow } from 'electron'
+import { IPC } from '../../shared/ipc-channels'
+import { createLogger } from '../lib/log'
 import { listAndroidDevices } from './android/mapper'
 import { startAndroidTracker } from './android/tracker'
 import { listHarmonyDevices } from './harmony/mapper'
 import { startHarmonyTracker } from './harmony/tracker'
 import type { UnifiedDevice } from './types'
 
-export const CHANGED_CHANNEL = 'devices:list-changed' as const
+const logger = createLogger('orchestrator')
 
 let snapshot: UnifiedDevice[] = []
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -17,17 +19,24 @@ let started = false
 function broadcast(): void {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
-      win.webContents.send(CHANGED_CHANNEL, snapshot)
+      win.webContents.send(IPC.devices.listChanged, snapshot)
     }
   }
 }
 
 async function refresh(): Promise<void> {
   const [android, harmony] = await Promise.all([
-    listAndroidDevices().catch(() => [] as UnifiedDevice[]),
-    listHarmonyDevices().catch(() => [] as UnifiedDevice[]),
+    listAndroidDevices().catch((e) => {
+      logger.warn('listAndroidDevices failed', e)
+      return [] as UnifiedDevice[]
+    }),
+    listHarmonyDevices().catch((e) => {
+      logger.warn('listHarmonyDevices failed', e)
+      return [] as UnifiedDevice[]
+    }),
   ])
   snapshot = [...android, ...harmony].sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
+  logger.debug('devices refreshed', { android: android.length, harmony: harmony.length, total: snapshot.length })
   broadcast()
 }
 
@@ -50,14 +59,21 @@ export async function startDeviceDiscovery(): Promise<void> {
     return
   }
   started = true
+  logger.info('device discovery starting')
   await refresh()
 
-  const android = await startAndroidTracker(scheduleRefresh).catch(() => null)
+  const android = await startAndroidTracker(scheduleRefresh).catch((e) => {
+    logger.warn('android tracker failed to start', e)
+    return null
+  })
   if (android) {
     androidStop = android.stop
   }
 
-  const harmony = await startHarmonyTracker(scheduleRefresh).catch(() => null)
+  const harmony = await startHarmonyTracker(scheduleRefresh).catch((e) => {
+    logger.warn('harmony tracker failed to start', e)
+    return null
+  })
   if (harmony) {
     harmonyStop = harmony.stop
   }
@@ -70,6 +86,7 @@ export async function startDeviceDiscovery(): Promise<void> {
 }
 
 export function stopDeviceDiscovery(): void {
+  logger.info('device discovery stopping')
   started = false
   if (debounceTimer !== null) {
     clearTimeout(debounceTimer)

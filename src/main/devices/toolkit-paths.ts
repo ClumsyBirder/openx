@@ -59,3 +59,19 @@ export function getBundledHdcPath(): string | null {
 export function resolveHdcExecutable(): string {
   return getBundledHdcPath() ?? 'hdc'
 }
+
+/** 已随包放置的 aapt 可执行文件绝对路径；不存在则返回 `null` */
+export function getBundledAaptPath(): string | null {
+  const override = readOverride('OPENX_AAPT_PATH')
+  if (override) {
+    return override
+  }
+  const name = process.platform === 'win32' ? 'aapt.exe' : 'aapt'
+  const candidate = join(toolkitRoot(), 'aapt', platformSubdir(), name)
+  return existsSync(candidate) ? candidate : null
+}
+
+/** aapt `bin`：优先包内，其次 PATH 上的 `aapt` */
+export function resolveAaptExecutable(): string | null {
+  return getBundledAaptPath() ?? null
+}

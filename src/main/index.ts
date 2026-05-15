@@ -1,8 +1,13 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { disposeDeviceDiscovery, initDeviceDiscovery, registerDeviceIpc } from './devices/ipc'
+import { disposeDeviceDiscovery, initDeviceDiscovery } from './devices/lifecycle'
+import { registerIpc } from './ipc'
+import { createLogger, initLog } from './lib/log'
+
+initLog()
+const logger = createLogger('main')
 
 let mainWindow: BrowserWindow | null = null
 
@@ -39,31 +44,12 @@ function createWindow(): void {
   }
 }
 
-// 窗口控制 IPC 处理
-ipcMain.on('window-minimize', () => {
-  mainWindow?.minimize()
-})
-
-ipcMain.on('window-maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize()
-  } else {
-    mainWindow?.maximize()
-  }
-})
-
-ipcMain.on('window-close', () => {
-  mainWindow?.close()
-})
-
-ipcMain.handle('window-is-maximized', () => {
-  return mainWindow?.isMaximized() ?? false
-})
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  logger.info('app ready')
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -74,10 +60,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  registerDeviceIpc()
+  registerIpc({ getMainWindow: () => mainWindow })
   await initDeviceDiscovery()
 
   createWindow()
@@ -99,6 +82,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  logger.info('app quitting')
   disposeDeviceDiscovery()
 })
 

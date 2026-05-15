@@ -1,6 +1,9 @@
 import type { Device } from '@devicefarmer/adbkit'
+import { createLogger } from '../../lib/log'
 import type { UnifiedDevice, UnifiedDeviceState } from '../types'
 import { getAdbClient } from './client'
+
+const logger = createLogger('androidMapper')
 
 /** ADB 设备类型映射为统一状态 */
 function mapAdbType(type: Device['type']): UnifiedDeviceState {
@@ -94,7 +97,8 @@ async function enrichDevice(device: Device): Promise<UnifiedDevice> {
       sdkVersion,
       label: buildAndroidLabel(displayName, device.id, androidVersion, sdkVersion),
     }
-  } catch {
+  } catch (e) {
+    logger.warn('enrichDevice failed', { serial: device.id, error: e })
     return base
   }
 }
