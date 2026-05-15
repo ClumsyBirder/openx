@@ -4,3 +4,9 @@ out
 .DS_Store
 .eslintcache
 *.log*
+
+# 包内 ADB/HDC 二进制（请本地放入，见 resources/toolkit/README.md）
+resources/toolkit/**/adb.exe
+resources/toolkit/**/hdc.exe
+resources/toolkit/adb/**/adb
+resources/toolkit/hdc/**/hdc
