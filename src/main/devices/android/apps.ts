@@ -156,5 +156,6 @@ export async function listAndroidApps(serial: string, includeSystem = true): Pro
 
   await enrichUserAppsMetadata(serial, apps, parsed)
 
-  return apps.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+  const filtered = includeSystem ? apps : apps.filter((a) => !a.isSystem)
+  return filtered.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
 }

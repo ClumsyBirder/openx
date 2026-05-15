@@ -32,6 +32,6 @@ export type ScreencapResult =
   | { ok: false; error: string }
 
 export interface ListAppsOptions {
-  /** 是否包含系统应用，默认 false */
+  /** 是否包含系统应用，默认 false（仅第三方用户应用） */
   includeSystem?: boolean
 }

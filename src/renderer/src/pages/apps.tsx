@@ -6,7 +6,6 @@ import {
   Pause,
   Trash2,
   RefreshCw,
-  Filter,
   Grid3X3,
   List,
   Loader2,
@@ -14,7 +13,6 @@ import {
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,13 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -53,7 +44,6 @@ export function AppsPage(): React.JSX.Element {
   const [actionKey, setActionKey] = useState<string | null>(null)
   const [uninstallTarget, setUninstallTarget] = useState<DeviceApp | null>(null)
   const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'user' | 'system'>('user')
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
 
   const fetchApps = useCallback(async () => {
@@ -64,15 +54,9 @@ export function AppsPage(): React.JSX.Element {
 
     setLoading(true)
     try {
-      const result = await window.api.apps.list(selectedId, {
-        includeSystem: filterType !== 'user',
-      })
+      const result = await window.api.apps.list(selectedId, { includeSystem: false })
       if (result.ok) {
-        let list = result.apps
-        if (filterType === 'system') {
-          list = list.filter((app) => app.isSystem)
-        }
-        setApps(list)
+        setApps(result.apps)
       } else {
         setApps([])
         toast.error(result.error)
@@ -80,7 +64,7 @@ export function AppsPage(): React.JSX.Element {
     } finally {
       setLoading(false)
     }
-  }, [selectedId, filterType])
+  }, [selectedId])
 
   useEffect(() => {
     void fetchApps()
@@ -188,7 +172,7 @@ export function AppsPage(): React.JSX.Element {
           size="icon"
           className={btnClass}
           title="卸载"
-          disabled={busy || loading || app.isSystem}
+          disabled={busy || loading}
           onClick={() => setUninstallTarget(app)}
         >
           <Trash2 className={`${iconClass} text-destructive`} />
@@ -218,23 +202,13 @@ export function AppsPage(): React.JSX.Element {
           />
         </div>
 
-        <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-          <SelectTrigger className="w-[120px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部应用</SelectItem>
-            <SelectItem value="user">用户应用</SelectItem>
-            <SelectItem value="system">系统应用</SelectItem>
-          </SelectContent>
-        </Select>
-
         {selectedDevice && (
           <span className="text-xs text-muted-foreground hidden lg:inline truncate max-w-[200px]">
             {selectedDevice.displayName}
           </span>
         )}
+
+        <span className="text-xs text-muted-foreground shrink-0">仅用户安装应用</span>
 
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center border rounded-lg overflow-hidden">
@@ -302,9 +276,6 @@ export function AppsPage(): React.JSX.Element {
                         </div>
                         <div>
                           <div className="font-medium">{app.name}</div>
-                          {app.isSystem && (
-                            <Badge variant="secondary" className="text-xs mt-0.5">系统应用</Badge>
-                          )}
                         </div>
                       </div>
                     </TableCell>

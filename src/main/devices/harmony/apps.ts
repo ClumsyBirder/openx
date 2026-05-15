@@ -69,5 +69,6 @@ export async function listHarmonyApps(connectKey: string, includeSystem = true):
     }
   })
 
-  return apps.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+  const filtered = includeSystem ? apps : apps.filter((a) => !a.isSystem)
+  return filtered.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
 }
