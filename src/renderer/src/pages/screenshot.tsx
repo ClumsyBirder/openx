@@ -28,9 +28,7 @@ import { useDevicesStore } from '../stores/devices'
 import { cn } from '@/lib/utils'
 import {
   formatHistoryTime,
-  loadScreenshotHistory,
   MAX_SCREENSHOT_HISTORY,
-  saveScreenshotHistory,
   stitchImages,
   type ScreenshotHistoryItem,
   type StitchDirection,
@@ -272,9 +270,7 @@ export function ScreenshotPage(): React.JSX.Element {
   const [imageReady, setImageReady] = useState(false)
   const [layoutTick, setLayoutTick] = useState(0)
 
-  const [captureHistory, setCaptureHistory] = useState<ScreenshotHistoryItem[]>(() =>
-    loadScreenshotHistory(),
-  )
+  const [captureHistory, setCaptureHistory] = useState<ScreenshotHistoryItem[]>([])
   const [selectedCaptureIds, setSelectedCaptureIds] = useState<Set<string>>(new Set())
   const [textEditor, setTextEditor] = useState<TextEditorState | null>(null)
 
@@ -293,10 +289,6 @@ export function ScreenshotPage(): React.JSX.Element {
 
   shapeStacksRef.current = shapeStacks
   shapeStackIndexRef.current = shapeStackIndex
-
-  useEffect(() => {
-    saveScreenshotHistory(captureHistory)
-  }, [captureHistory])
 
   const resetAnnotations = useCallback(() => {
     setShapes([])
@@ -1029,8 +1021,7 @@ export function ScreenshotPage(): React.JSX.Element {
           ref={containerRef}
           className="relative flex-1 min-h-0 flex items-center justify-center p-4 bg-muted/20 rounded-lg overflow-hidden"
         >
-          {screenshot && imageReady && (
-            <div
+         <div
               className="absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-md border border-border/60 bg-background/90 px-3 py-2 text-[11px] leading-snug text-muted-foreground shadow-sm backdrop-blur-sm pointer-events-none"
               aria-hidden
             >
@@ -1065,7 +1056,6 @@ export function ScreenshotPage(): React.JSX.Element {
                 <span className="text-[10px] opacity-80">选择模式下可拖动文字</span>
               )}
             </div>
-          )}
 
           {screenshot ? (
             <div

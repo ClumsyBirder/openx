@@ -8,32 +8,7 @@ export interface ScreenshotHistoryItem {
 
 export type StitchDirection = 'horizontal' | 'vertical'
 
-const STORAGE_KEY = 'openx-screenshot-history'
 export const MAX_SCREENSHOT_HISTORY = 20
-
-export function loadScreenshotHistory(): ScreenshotHistoryItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      return []
-    }
-    const parsed = JSON.parse(raw) as ScreenshotHistoryItem[]
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-    return parsed.filter((item) => item?.id && item?.dataUrl)
-  } catch {
-    return []
-  }
-}
-
-export function saveScreenshotHistory(items: ScreenshotHistoryItem[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_SCREENSHOT_HISTORY)))
-  } catch {
-    // 存储配额不足时仅保留内存中的记录
-  }
-}
 
 export function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

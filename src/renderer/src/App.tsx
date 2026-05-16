@@ -42,7 +42,7 @@ function App(): React.JSX.Element {
           </main>
         </div>
       </div>
-      <Toaster />
+      <Toaster position='top-center' duration={1200}/>
     </TooltipProvider>
   )
 }
