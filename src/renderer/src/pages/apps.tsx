@@ -47,7 +47,6 @@ import {
 
 export function AppsPage(): React.JSX.Element {
   const selectedId = useDevicesStore((s) => s.selectedId)
-  const selectedDevice = useDevicesStore((s) => s.devices.find((d) => d.id === selectedId))
 
   const [apps, setApps] = useState<DeviceApp[]>([])
   const [loading, setLoading] = useState(false)
