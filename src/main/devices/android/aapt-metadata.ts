@@ -2,7 +2,7 @@ import AdmZip from 'adm-zip'
 import { createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { spawn } from 'node:child_process'
 import { createLogger } from '../../lib/log'
@@ -19,12 +19,10 @@ export interface ApkMetadata {
 
 function runAapt(args: string[]): Promise<string> {
   const bin = resolveAaptExecutable()
-  if (!bin) {
-    return Promise.reject(new Error('aapt not found'))
-  }
+  const cwd = isAbsolute(bin) ? dirname(bin) : undefined
 
   return new Promise((resolve, reject) => {
-    const cp = spawn(bin, args, { windowsHide: true })
+    const cp = spawn(bin, args, { windowsHide: true, cwd })
     let stdout = ''
     let stderr = ''
     cp.stdout.on('data', (chunk: Buffer) => {
@@ -46,27 +44,71 @@ function runAapt(args: string[]): Promise<string> {
 
 function parseApplicationLabel(badging: string): string | undefined {
   const labels: Record<string, string> = {}
-  for (const line of badging.split('\n')) {
-    const match = line.match(/^application-label(?:-([\w-]+))?:'((?:\\'|[^'])*)'/)
-    if (match) {
-      const key = match[1] ?? 'default'
-      labels[key] = match[2].replace(/\\'/g, "'")
+  for (const raw of badging.split('\n')) {
+    const line = raw.trim()
+    let m = line.match(/^application-label(?:-([\w-]+))?:'((?:\\'|[^'])*)'/)
+    if (m) {
+      const key = m[1] ?? 'default'
+      labels[key] = m[2].replace(/\\'/g, "'")
+      continue
+    }
+    m = line.match(/^application-label(?:-([\w-]+))?:"((?:\\"|[^"])*)"/)
+    if (m) {
+      const key = m[1] ?? 'default'
+      labels[key] = m[2].replace(/\\"/g, '"')
+      continue
+    }
+    if (line.startsWith('application:')) {
+      m = line.match(/\blabel='((?:\\'|[^'])*)'/)
+      if (m) {
+        labels.default = labels.default ?? m[1].replace(/\\'/g, "'")
+        continue
+      }
+      m = line.match(/\blabel="((?:\\"|[^"])*)"/)
+      if (m) {
+        labels.default = labels.default ?? m[1].replace(/\\"/g, '"')
+      }
     }
   }
   return labels['zh-CN'] ?? labels.zh ?? labels.default ?? Object.values(labels)[0]
 }
 
 function parseApplicationIcon(badging: string): string | undefined {
-  for (const line of badging.split('\n')) {
-    if (!line.startsWith('application:')) {
+  let bestDensity = -1
+  let bestPath: string | undefined
+  let fallback: string | undefined
+
+  for (const raw of badging.split('\n')) {
+    const line = raw.trim()
+    if (line.startsWith('application-icon-')) {
+      const dm = line.match(/^application-icon-(\d+):/)
+      const pm =
+        line.match(/^application-icon-\d+:'([^']+)'/) ??
+        line.match(/^application-icon-\d+:"([^"]+)"/)
+      if (dm && pm) {
+        const d = parseInt(dm[1], 10)
+        const p = pm[1]
+        if (p.endsWith('.xml')) {
+          continue
+        }
+        if (d > bestDensity) {
+          bestDensity = d
+          bestPath = p
+        }
+      }
       continue
     }
-    const match = line.match(/icon='([^']+)'/)
-    if (match) {
-      return match[1]
+    if (line.startsWith('application:')) {
+      let m = line.match(/\bicon='([^']+)'/)
+      if (!m) {
+        m = line.match(/\bicon="([^"]+)"/)
+      }
+      if (m && !m[1].endsWith('.xml')) {
+        fallback = m[1]
+      }
     }
   }
-  return undefined
+  return bestPath ?? fallback
 }
 
 function extractIconFromApkWithMime(
@@ -113,10 +155,6 @@ export async function getApkMetadata(
   serial: string,
   remoteApkPath: string,
 ): Promise<ApkMetadata> {
-  if (!resolveAaptExecutable()) {
-    return {}
-  }
-
   try {
     const localApk = await pullApk(serial, remoteApkPath)
     const badging = await runAapt(['dump', 'badging', localApk])
@@ -125,7 +163,7 @@ export async function getApkMetadata(
     const iconData = iconEntry ? extractIconFromApkWithMime(localApk, iconEntry) : {}
     return { name, ...iconData }
   } catch (e) {
-    logger.debug('getApkMetadata failed', { serial, remoteApkPath, error: e })
+    logger.warn('getApkMetadata failed', { serial, remoteApkPath, error: e })
     return {}
   }
 }

@@ -1,12 +1,12 @@
 import type { DeviceApp } from '../../../shared/device-app'
 import { mapConcurrent } from '../../lib/map-concurrent'
 import { createLogger } from '../../lib/log'
-import { getApkMetadata } from './aapt-metadata'
+import { getOnlineAndroidAppInfo, shouldFetchOnlineAndroidInfo } from './online-metadata'
 import { shell } from './base'
 
 const logger = createLogger('adbApps')
 const VERSION_CHUNK = 40
-const METADATA_CONCURRENCY = 4
+const ONLINE_CONCURRENCY = 6
 
 function parsePackageLine(line: string): { packageName: string; apkPath: string } | null {
   const trimmed = line.trim()
@@ -103,26 +103,21 @@ async function fetchVersionMap(
   return map
 }
 
-async function enrichUserAppsMetadata(
-  serial: string,
-  apps: DeviceApp[],
-  parsed: Array<{ packageName: string; apkPath: string }>,
-): Promise<void> {
-  const apkPathMap = new Map(parsed.map((p) => [p.packageName, p.apkPath]))
-  const userApps = apps.filter((app) => !app.isSystem)
+async function enrichUserAppsMetadata(apps: DeviceApp[]): Promise<void> {
+  const targets = apps.filter((app) => shouldFetchOnlineAndroidInfo(app.packageName, app.isSystem))
 
-  await mapConcurrent(userApps, METADATA_CONCURRENCY, async (app) => {
-    const apkPath = apkPathMap.get(app.packageName)
-    if (!apkPath) {
-      return
-    }
-    const meta = await getApkMetadata(serial, apkPath)
-    if (meta.name) {
-      app.name = meta.name
-    }
-    if (meta.icon) {
-      app.icon = meta.icon
-      app.iconMimeType = meta.iconMimeType
+  await mapConcurrent(targets, ONLINE_CONCURRENCY, async (app) => {
+    try {
+      const online = await getOnlineAndroidAppInfo(app.packageName)
+      if (online.name) {
+        app.name = online.name
+      }
+      if (online.icon) {
+        app.icon = online.icon
+        app.iconMimeType = online.iconMimeType
+      }
+    } catch (e) {
+      logger.debug('online android info failed', app.packageName, e)
     }
   })
 }
@@ -154,7 +149,7 @@ export async function listAndroidApps(serial: string, includeSystem = true): Pro
     }
   })
 
-  await enrichUserAppsMetadata(serial, apps, parsed)
+  await enrichUserAppsMetadata(apps)
 
   const filtered = includeSystem ? apps : apps.filter((a) => !a.isSystem)
   return filtered.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))

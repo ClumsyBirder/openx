@@ -9,6 +9,7 @@ import {
   Grid3X3,
   List,
   Loader2,
+  MoreVertical,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -31,9 +32,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { DeviceApp } from '../../../shared/device-app'
 import { appIconSrc } from '../lib/app-icon'
 import { useDevicesStore } from '../stores/devices'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function AppsPage(): React.JSX.Element {
   const selectedId = useDevicesStore((s) => s.selectedId)
@@ -44,7 +54,7 @@ export function AppsPage(): React.JSX.Element {
   const [actionKey, setActionKey] = useState<string | null>(null)
   const [uninstallTarget, setUninstallTarget] = useState<DeviceApp | null>(null)
   const [search, setSearch] = useState('')
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
 
   const fetchApps = useCallback(async () => {
     if (!selectedId) {
@@ -181,6 +191,27 @@ export function AppsPage(): React.JSX.Element {
     )
   }
 
+  const renderMenuActions = (app: DeviceApp) => {
+    const busy = actionKey?.endsWith(`:${app.packageName}`) ?? false
+    return (
+      <>
+        <DropdownMenuItem disabled={busy || loading} onSelect={() => void handleStart(app)}>
+          <Play className="mr-2 h-4 w-4" />
+          启动
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={busy || loading} onSelect={() => void handleStop(app)}>
+          <Pause className="mr-2 h-4 w-4" />
+          停止
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={busy || loading} onSelect={() => setUninstallTarget(app)} className="text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />
+          卸载
+        </DropdownMenuItem>
+      </>
+    )
+  }
+
   if (!selectedId) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -201,12 +232,6 @@ export function AppsPage(): React.JSX.Element {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-
-        {selectedDevice && (
-          <span className="text-xs text-muted-foreground hidden lg:inline truncate max-w-[200px]">
-            {selectedDevice.displayName}
-          </span>
-        )}
 
         <span className="text-xs text-muted-foreground shrink-0">仅用户安装应用</span>
 
@@ -251,16 +276,17 @@ export function AppsPage(): React.JSX.Element {
             {search ? '没有找到应用' : '暂无应用数据'}
           </div>
         ) : viewMode === 'table' ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>应用</TableHead>
-                <TableHead>包名</TableHead>
-                <TableHead>版本</TableHead>
-                <TableHead className="w-[150px] text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <ScrollArea className="flex-1 min-h-0 h-full">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>应用</TableHead>
+                  <TableHead>包名</TableHead>
+                  <TableHead>版本</TableHead>
+                  <TableHead className="w-[150px] text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {filteredApps.map((app) => {
                 const iconSrc = appIconSrc(app)
                 return (
@@ -295,41 +321,60 @@ export function AppsPage(): React.JSX.Element {
                 )
               })}
             </TableBody>
-          </Table>
+            </Table>
+          </ScrollArea>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-1">
-            {filteredApps.map((app) => {
-              const iconSrc = appIconSrc(app)
-              return (
-                <div
-                  key={app.packageName}
-                  className="bg-card rounded-xl border border-border p-4 hover:border-primary/50 transition-colors group"
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-3 overflow-hidden">
-                      {iconSrc ? (
-                        <img src={iconSrc} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <Smartphone className="w-8 h-8 text-muted-foreground" />
+          <ScrollArea className="flex-1 min-h-0 h-full">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-0.5 mr-1">
+              {filteredApps.map((app) => {
+                const iconSrc = appIconSrc(app)
+                return (
+                  <div
+                    key={app.packageName}
+                    className="bg-card rounded-lg border border-border p-2 hover:border-primary transition-colors relative group"
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mb-1.5 overflow-hidden shrink-0">
+                        {iconSrc ? (
+                          <img src={iconSrc} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Smartphone className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="w-full">
+                        <span className="text-xs font-medium truncate max-w-full block">{app.name}</span>
+                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <code className="text-[10px] text-muted-foreground truncate max-w-full mt-0.5 block cursor-help">
+                            {app.packageName}
+                          </code>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs break-all">
+                          <p className="font-mono text-xs">{app.packageName}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {app.version && (
+                        <span className="text-[10px] text-muted-foreground mt-0.5">v{app.version}</span>
                       )}
                     </div>
-                    <div className="mb-1">
-                      <span className="font-medium truncate max-w-[120px] block">{app.name}</span>
-                    </div>
-                    <code className="text-[10px] text-muted-foreground truncate max-w-full mb-2">
-                      {app.packageName}
-                    </code>
-                    <div className="text-xs text-muted-foreground mb-3">
-                      {app.version ? `v${app.version}` : '-'}
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      {renderActions(app, true)}
+                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-28">
+                          {renderMenuActions(app)}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
         )}
       </div>
 

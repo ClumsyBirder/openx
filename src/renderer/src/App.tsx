@@ -5,6 +5,7 @@ import { Sidebar } from './components/sidebar'
 import { Header } from './components/header'
 import { DashboardPage } from './pages/dashboard'
 import { AppsPage } from './pages/apps'
+import { ScreenshotPage } from './pages/screenshot'
 import { GlobalVariablesPage } from './pages/global-variables'
 
 function App(): React.JSX.Element {
@@ -16,6 +17,8 @@ function App(): React.JSX.Element {
         return <GlobalVariablesPage />
       case 'apps':
         return <AppsPage />
+      case 'screenshot':
+        return <ScreenshotPage />
       case 'home':
       default:
         return <DashboardPage />

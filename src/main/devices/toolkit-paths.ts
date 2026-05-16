@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { join } from 'node:path'
+import { join, normalize } from 'node:path'
 import { existsSync } from 'node:fs'
 
 /** 与 `electron-builder.yml` 中 `extraResources.to: toolkit` 一致 */
@@ -7,7 +7,18 @@ function toolkitRoot(): string {
   if (app.isPackaged) {
     return join(process.resourcesPath, 'toolkit')
   }
-  return join(__dirname, '../../../resources/toolkit')
+  // 开发：electron-vite 主进程入口多为 out/main，相对路径应为 ../../resources/toolkit
+  const candidates = [
+    join(app.getAppPath(), 'resources', 'toolkit'),
+    join(__dirname, '../../resources/toolkit'),
+    join(__dirname, '../../../resources/toolkit'),
+  ]
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      return normalize(c)
+    }
+  }
+  return normalize(join(app.getAppPath(), 'resources', 'toolkit'))
 }
 
 function platformSubdir(): string {
@@ -71,7 +82,7 @@ export function getBundledAaptPath(): string | null {
   return existsSync(candidate) ? candidate : null
 }
 
-/** aapt `bin`：优先包内，其次 PATH 上的 `aapt` */
-export function resolveAaptExecutable(): string | null {
-  return getBundledAaptPath() ?? null
+/** aapt `bin`：优先包内，其次 PATH 上的 `aapt` / `aapt.exe` */
+export function resolveAaptExecutable(): string {
+  return getBundledAaptPath() ?? (process.platform === 'win32' ? 'aapt.exe' : 'aapt')
 }
