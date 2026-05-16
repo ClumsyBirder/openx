@@ -18,6 +18,7 @@ export const IPC = {
     start: 'apps:start',
     stop: 'apps:stop',
     uninstall: 'apps:uninstall',
+    install: 'apps:install',
   },
   screencap: {
     capture: 'screencap:capture',

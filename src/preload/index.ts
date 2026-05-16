@@ -44,6 +44,8 @@ const api = {
       ipcRenderer.invoke(IPC.apps.stop, deviceId, packageName),
     uninstall: (deviceId: string, packageName: string): Promise<AppActionResult> =>
       ipcRenderer.invoke(IPC.apps.uninstall, deviceId, packageName),
+    install: (deviceId: string): Promise<AppActionResult> =>
+      ipcRenderer.invoke(IPC.apps.install, deviceId),
   },
   screencap: {
     capture: (deviceId: string): Promise<ScreencapResult> =>

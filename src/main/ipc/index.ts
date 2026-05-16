@@ -7,6 +7,7 @@ import {
   handleAppsStart,
   handleAppsStop,
   handleAppsUninstall,
+  handleAppsInstall,
 } from './handlers/apps'
 import { handleScreencap } from './handlers/screencap'
 import { handleShellExec } from './handlers/shell'
@@ -52,6 +53,7 @@ export function registerIpc({ getMainWindow }: RegisterIpcOptions): void {
   ipcMain.handle(IPC.apps.start, handleAppsStart)
   ipcMain.handle(IPC.apps.stop, handleAppsStop)
   ipcMain.handle(IPC.apps.uninstall, handleAppsUninstall)
+  ipcMain.handle(IPC.apps.install, handleAppsInstall)
 
   // ── Screencap ───────────────────────────────────────────────────────────
   ipcMain.handle(IPC.screencap.capture, handleScreencap)

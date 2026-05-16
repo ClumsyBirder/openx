@@ -8,9 +8,13 @@ import {
   Tablet,
   Sun,
   Moon,
+  PackagePlus,
+  Loader2,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from 'next-themes'
+import { toast } from 'sonner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDevicesStore } from '../stores/devices'
 import type { UnifiedDevice } from '../../../shared/unified-device'
 
@@ -59,6 +63,7 @@ export function Header(): React.JSX.Element {
 
   const [isMaximized, setIsMaximized] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [installing, setInstalling] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 监听窗口最大化状态
@@ -98,11 +103,40 @@ export function Header(): React.JSX.Element {
     window.api?.window?.close?.()
   }
 
+  const handleInstallApp = async () => {
+    if (!selectedId) {
+      toast.error('请先选择设备')
+      return
+    }
+    if (selectedDevice?.state !== 'online') {
+      toast.error('设备未在线，无法安装')
+      return
+    }
+
+    setInstalling(true)
+    try {
+      const result = await window.api.apps.install(selectedId)
+      if (result.ok) {
+        toast.success('应用安装成功')
+      } else if (!result.cancelled && result.error) {
+        toast.error(result.error)
+      }
+    } catch (err) {
+      toast.error(String(err))
+    } finally {
+      setInstalling(false)
+    }
+  }
+
   const headerPrimary = selectedDevice?.displayName ?? '未检测到设备'
   const headerSecondary = selectedDevice
     ? [versionSummary(selectedDevice), selectedDevice.connectionKey].filter(Boolean).join(' · ')
     : ''
   const headerTitle = selectedDevice?.label ?? headerPrimary
+  const installTooltip =
+    selectedDevice?.platform === 'harmony'
+      ? '安装 HAP 应用包到设备'
+      : '安装 APK 到设备'
 
   return (
     <header className="drag-region min-h-10 flex items-center select-none py-1">
@@ -136,9 +170,8 @@ export function Header(): React.JSX.Element {
                     setSelectedId(device.id)
                     setIsDropdownOpen(false)
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-accent transition-colors ${
-                    selectedId === device.id ? 'text-primary font-medium' : ''
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-accent transition-colors ${selectedId === device.id ? 'text-primary font-medium' : ''
+                    }`}
                 >
                   <DeviceIcon device={device} />
                   <span
@@ -160,6 +193,7 @@ export function Header(): React.JSX.Element {
       </div>
 
       <div className="no-drag flex items-center ml-auto gap-1 self-center pr-1">
+
         <div className="mx-5">
           <div
             role="button"
@@ -171,9 +205,8 @@ export function Header(): React.JSX.Element {
                 setTheme(theme === 'dark' ? 'light' : 'dark')
               }
             }}
-            className={`relative flex items-center w-[64px] h-[35px] rounded-xl p-0.5 cursor-pointer transition-colors ${
-              theme === 'dark' ? 'bg-background border border-border' : 'bg-accent/50 border'
-            }`}
+            className={`relative flex items-center w-[64px] h-[35px] rounded-xl p-0.5 cursor-pointer transition-colors ${theme === 'dark' ? 'bg-background border border-border' : 'bg-accent/50 border'
+              }`}
           >
             <div
               className={`
@@ -181,11 +214,10 @@ export function Header(): React.JSX.Element {
               w-[28px] h-[28px] rounded-lg
               flex items-center justify-center
               transition-all duration-300 ease-in-out
-              ${
-                theme === 'dark'
+              ${theme === 'dark'
                   ? 'right-0.5 bg-zinc-700'
                   : 'left-0.5 bg-white shadow-sm border border-border'
-              }
+                }
             `}
             >
               {theme === 'dark' ? (
@@ -197,10 +229,30 @@ export function Header(): React.JSX.Element {
           </div>
         </div>
 
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => void handleInstallApp()}
+              disabled={!selectedId || installing || selectedDevice?.state !== 'online'}
+              className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors rounded-lg mx-3"
+            >
+              {installing ? (
+                <Loader2 className="w-4.5 h-4.5 animate-spin" />
+              ) : (
+                <PackagePlus className="w-4.5 h-4.5" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {installTooltip}
+          </TooltipContent>
+        </Tooltip>
+
         <button
           type="button"
           onClick={handleMinimize}
-          className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors"
+          className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors rounded-lg"
           aria-label="最小化"
         >
           <Minus className="w-4 h-4" />
@@ -209,7 +261,7 @@ export function Header(): React.JSX.Element {
         <button
           type="button"
           onClick={handleMaximize}
-          className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors"
+          className="w-8 h-8 flex items-center justify-center hover:bg-accent transition-colors rounded-lg"
           aria-label={isMaximized ? '还原' : '最大化'}
         >
           {isMaximized ? (
@@ -222,7 +274,7 @@ export function Header(): React.JSX.Element {
         <button
           type="button"
           onClick={handleClose}
-          className="w-8.5 h-8 flex items-center justify-center hover:bg-destructive transition-colors group"
+          className="w-8.5 h-8 flex items-center justify-center hover:bg-destructive transition-colors  rounded-lg"
           aria-label="关闭"
         >
           <X className="w-4 h-4 group-hover:text-destructive-foreground" />

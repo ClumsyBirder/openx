@@ -22,3 +22,9 @@ export async function uninstallHarmonyApp(connectKey: string, bundleName: string
   logger.debug('uninstall', { connectKey, bundleName })
   await getHdcClient().getTarget(connectKey).uninstall(bundleName)
 }
+
+/** 安装 HAP 等鸿蒙应用包 */
+export async function installHarmonyApp(connectKey: string, packagePath: string): Promise<void> {
+  logger.debug('install', { connectKey, packagePath })
+  await getHdcClient().getTarget(connectKey).install(packagePath)
+}

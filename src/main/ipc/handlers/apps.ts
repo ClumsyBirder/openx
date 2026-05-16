@@ -1,4 +1,5 @@
 import type { IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron'
 import type {
   AppActionResult,
   AppsListResult,
@@ -7,11 +8,12 @@ import type {
 } from '../../../shared/device-app'
 import { listDeviceApps } from '../../devices/apps'
 import {
+  installDeviceApp,
   startDeviceApp,
   stopDeviceApp,
   uninstallDeviceApp,
 } from '../../devices/app-control'
-import { logErr } from '../../devices/device-ref'
+import { logErr, parseDeviceRef } from '../../devices/device-ref'
 import { createLogger } from '../../lib/log'
 
 const logger = createLogger('ipc:apps')
@@ -68,6 +70,45 @@ export async function handleAppsUninstall(
     return { ok: true }
   } catch (e) {
     logger.warn('apps:uninstall failed', { deviceId, packageName, error: logErr(e).errMessage })
+    return { ok: false, error: logErr(e).errMessage }
+  }
+}
+
+export async function handleAppsInstall(
+  event: IpcMainInvokeEvent,
+  deviceId: string,
+): Promise<AppActionResult> {
+  const ref = parseDeviceRef(deviceId)
+  if (!ref) {
+    return { ok: false, error: `无效的设备 ID: ${deviceId}` }
+  }
+
+  const parentWindow = BrowserWindow.fromWebContents(event.sender)
+  const filters =
+    ref.platform === 'harmony'
+      ? [{ name: '鸿蒙应用包', extensions: ['hap', 'hsp', 'app'] }]
+      : [{ name: 'Android 应用包', extensions: ['apk'] }]
+
+  const dialogOptions: OpenDialogOptions = {
+    title: ref.platform === 'harmony' ? '选择要安装的鸿蒙应用包' : '选择要安装的 APK',
+    properties: ['openFile'],
+    filters,
+  }
+  const picked = parentWindow
+    ? await dialog.showOpenDialog(parentWindow, dialogOptions)
+    : await dialog.showOpenDialog(dialogOptions)
+
+  if (picked.canceled || picked.filePaths.length === 0) {
+    return { ok: false, error: '', cancelled: true }
+  }
+
+  const packagePath = picked.filePaths[0]
+
+  try {
+    await installDeviceApp(deviceId, packagePath)
+    return { ok: true }
+  } catch (e) {
+    logger.warn('apps:install failed', { deviceId, packagePath, error: logErr(e).errMessage })
     return { ok: false, error: logErr(e).errMessage }
   }
 }

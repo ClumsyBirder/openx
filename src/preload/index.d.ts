@@ -30,6 +30,7 @@ interface AppsAPI {
   start: (deviceId: string, payload: StartAppPayload) => Promise<AppActionResult>
   stop: (deviceId: string, packageName: string) => Promise<AppActionResult>
   uninstall: (deviceId: string, packageName: string) => Promise<AppActionResult>
+  install: (deviceId: string) => Promise<AppActionResult>
 }
 
 interface ScreencapAPI {

@@ -1,10 +1,12 @@
 import { parseDeviceRef } from './device-ref'
 import {
+  installAndroidApp,
   startAndroidApp,
   stopAndroidApp,
   uninstallAndroidApp,
 } from './android/app-control'
 import {
+  installHarmonyApp,
   startHarmonyApp,
   stopHarmonyApp,
   uninstallHarmonyApp,
@@ -59,4 +61,17 @@ export async function uninstallDeviceApp(deviceId: string, packageName: string):
     return
   }
   await uninstallHarmonyApp(ref.key, packageName)
+}
+
+export async function installDeviceApp(deviceId: string, packagePath: string): Promise<void> {
+  const ref = parseDeviceRef(deviceId)
+  if (!ref) {
+    throw new Error(`Invalid device id: ${deviceId}`)
+  }
+
+  if (ref.platform === 'android') {
+    await installAndroidApp(ref.key, packagePath)
+    return
+  }
+  await installHarmonyApp(ref.key, packagePath)
 }

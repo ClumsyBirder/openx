@@ -16,7 +16,9 @@ export interface DeviceApp {
   sizeBytes?: number
 }
 
-export type AppActionResult = { ok: true } | { ok: false; error: string }
+export type AppActionResult =
+  | { ok: true }
+  | { ok: false; error: string; /** 用户取消文件选择 */ cancelled?: boolean }
 
 export type AppsListResult =
   | { ok: true; apps: DeviceApp[] }

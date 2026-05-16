@@ -33,3 +33,9 @@ export async function uninstallAndroidApp(serial: string, packageName: string): 
   logger.debug('uninstall', { serial, packageName })
   await getAdbClient().getDevice(serial).uninstall(packageName)
 }
+
+/** 安装 APK（覆盖已安装版本，等同 adb install -r） */
+export async function installAndroidApp(serial: string, packagePath: string): Promise<void> {
+  logger.debug('install', { serial, packagePath })
+  await getAdbClient().getDevice(serial).install(packagePath)
+}
