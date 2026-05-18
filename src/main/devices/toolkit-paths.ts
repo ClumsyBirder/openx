@@ -82,7 +82,13 @@ export function getBundledAaptPath(): string | null {
   return existsSync(candidate) ? candidate : null
 }
 
-/** aapt `bin`：优先包内，其次 PATH 上的 `aapt` / `aapt.exe` */
-export function resolveAaptExecutable(): string {
-  return getBundledAaptPath() ?? (process.platform === 'win32' ? 'aapt.exe' : 'aapt')
+/** 已随包放置的 scrcpy-server.jar 绝对路径；不存在则返回 `null` */
+export function resolveScrcpyServerPath(): string | null {
+  const override = readOverride('OPENX_SCRCPY_SERVER_PATH')
+  if (override) {
+    return override
+  }
+  const candidate = join(toolkitRoot(), 'scrcpy-server.jar')
+  return existsSync(candidate) ? candidate : null
 }
+

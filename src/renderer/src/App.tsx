@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/dashboard'
 import { AppsPage } from './pages/apps'
 import { ScreenshotPage } from './pages/screenshot'
 import { GlobalVariablesPage } from './pages/global-variables'
+import { MirrorPage } from './pages/mirror'
 
 function App(): React.JSX.Element {
   const [activeMenu, setActiveMenu] = useState('home')
@@ -19,6 +20,8 @@ function App(): React.JSX.Element {
         return <AppsPage />
       case 'screenshot':
         return <ScreenshotPage />
+      case 'mirror':
+        return <MirrorPage />
       case 'home':
       default:
         return <DashboardPage />

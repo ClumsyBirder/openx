@@ -11,6 +11,7 @@ import {
 } from './handlers/apps'
 import { handleScreencap } from './handlers/screencap'
 import { handleShellExec } from './handlers/shell'
+import { handleMirrorStart, handleMirrorStop, handleOpenMirrorWindow } from './handlers/mirror'
 
 const logger = createLogger('ipc')
 
@@ -57,6 +58,11 @@ export function registerIpc({ getMainWindow }: RegisterIpcOptions): void {
 
   // ── Screencap ───────────────────────────────────────────────────────────
   ipcMain.handle(IPC.screencap.capture, handleScreencap)
+
+  // ── Mirror ──────────────────────────────────────────────────────────────
+  ipcMain.handle(IPC.mirror.openWindow, handleOpenMirrorWindow)
+  ipcMain.handle(IPC.mirror.start, handleMirrorStart)
+  ipcMain.handle(IPC.mirror.stop, handleMirrorStop)
 
   // ── Log ─────────────────────────────────────────────────────────────────
   ipcMain.handle(IPC.log.getPath, () => getLogPath())

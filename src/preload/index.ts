@@ -10,6 +10,7 @@ import type {
 } from '../shared/device-app'
 import type { ShellExecResult } from '../shared/shell'
 import type { UnifiedDevice } from '../shared/unified-device'
+import type { MirrorActionResult, MirrorMetadata, MirrorOptions, FramePacket } from '../shared/mirror'
 
 // Custom APIs for renderer
 const api = {
@@ -50,6 +51,34 @@ const api = {
   screencap: {
     capture: (deviceId: string): Promise<ScreencapResult> =>
       ipcRenderer.invoke(IPC.screencap.capture, deviceId)
+  },
+  mirror: {
+    start: (deviceId: string, options?: MirrorOptions): Promise<MirrorActionResult> =>
+      ipcRenderer.invoke(IPC.mirror.start, deviceId, options),
+    stop: (deviceId: string): Promise<void> =>
+      ipcRenderer.invoke(IPC.mirror.stop, deviceId),
+    openWindow: (deviceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.mirror.openWindow, deviceId),
+    onMetadata: (cb: (meta: MirrorMetadata) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, meta: MirrorMetadata): void => cb(meta)
+      ipcRenderer.on(IPC.mirror.metadata, listener)
+      return () => ipcRenderer.removeListener(IPC.mirror.metadata, listener)
+    },
+    onFrame: (cb: (data: FramePacket) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, data: FramePacket): void => cb(data)
+      ipcRenderer.on(IPC.mirror.frame, listener)
+      return () => ipcRenderer.removeListener(IPC.mirror.frame, listener)
+    },
+    onError: (cb: (msg: string) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, msg: string): void => cb(msg)
+      ipcRenderer.on(IPC.mirror.error, listener)
+      return () => ipcRenderer.removeListener(IPC.mirror.error, listener)
+    },
+    onWindowClosed: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on(IPC.mirror.windowClosed, listener)
+      return () => ipcRenderer.removeListener(IPC.mirror.windowClosed, listener)
+    },
   },
   log: {
     getPath: (): Promise<string> => ipcRenderer.invoke(IPC.log.getPath)

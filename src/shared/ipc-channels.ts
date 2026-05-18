@@ -23,6 +23,19 @@ export const IPC = {
   screencap: {
     capture: 'screencap:capture',
   },
+  mirror: {
+    start: 'mirror:start',
+    stop: 'mirror:stop',
+    openWindow: 'mirror:open-window',
+    /** main → renderer: MirrorMetadata */
+    metadata: 'mirror:metadata',
+    /** main → renderer: FramePacket */
+    frame: 'mirror:frame',
+    /** main → renderer: string (error message) */
+    error: 'mirror:error',
+    /** main → main-window renderer: mirror window was closed */
+    windowClosed: 'mirror:window-closed',
+  },
   log: {
     getPath: 'log:get-path',
   },

@@ -8,6 +8,7 @@ import type {
 } from '../shared/device-app'
 import type { ShellExecResult } from '../shared/shell'
 import type { UnifiedDevice } from '../shared/unified-device'
+import type { MirrorActionResult, MirrorMetadata, MirrorOptions, FramePacket } from '../shared/mirror'
 
 interface WindowAPI {
   minimize: () => void
@@ -37,6 +38,16 @@ interface ScreencapAPI {
   capture: (deviceId: string) => Promise<ScreencapResult>
 }
 
+interface MirrorAPI {
+  start: (deviceId: string, options?: MirrorOptions) => Promise<MirrorActionResult>
+  stop: (deviceId: string) => Promise<void>
+  openWindow: (deviceId: string) => Promise<{ ok: boolean; error?: string }>
+  onMetadata: (cb: (meta: MirrorMetadata) => void) => () => void
+  onFrame: (cb: (data: FramePacket) => void) => () => void
+  onError: (cb: (msg: string) => void) => () => void
+  onWindowClosed: (cb: () => void) => () => void
+}
+
 interface LogAPI {
   getPath: () => Promise<string>
 }
@@ -50,9 +61,11 @@ declare global {
       shell: ShellAPI
       apps: AppsAPI
       screencap: ScreencapAPI
+      mirror: MirrorAPI
       log: LogAPI
     }
   }
 }
 
 export {}
+

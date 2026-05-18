@@ -4,7 +4,8 @@ import {
   AppWindow,
   Key,
   ArrowDownWideNarrow,
-  Camera
+  Camera,
+  Monitor
 } from 'lucide-react'
 
 interface MenuItem {
@@ -17,6 +18,7 @@ const menuItems: MenuItem[] = [
   { id: 'home', icon: <Home className="w-5 h-5" />, label: '首页' },
   { id: 'apps', icon: <AppWindow className="w-5 h-5" />, label: '应用列表' },
   { id: 'screenshot', icon: <Camera className="w-5 h-5" />, label: '截图工具' },
+  { id: 'mirror', icon: <Monitor className="w-5 h-5" />, label: '屏幕镜像' },
   { id: 'global-variables', icon: <Key className="w-5 h-5" />, label: '全局变量' }
 ]
 
