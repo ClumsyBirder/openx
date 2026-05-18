@@ -22,9 +22,11 @@ export interface HarmonyBundleDump {
   applicationInfo?: {
     isSystemApp?: boolean
     versionName?: string
-    label?: string
+    apiTargetVersion?: number
+    vendor?: string
   }
   installTime?: number
+  releaseType?: string
 }
 
 export function parseBundleDump(raw: string): HarmonyBundleDump | null {

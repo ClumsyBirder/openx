@@ -45,7 +45,7 @@ export async function listHarmonyApps(connectKey: string, includeSystem = true):
       const isSystem = appInfo?.isSystemApp ?? isSystemBundle(bundleName)
       apps.push({
         packageName: bundleName,
-        name: appInfo?.label?.trim() || bundleName,
+        name: bundleName,
         version: appInfo?.versionName?.trim() ?? '',
         isSystem,
         mainAbility: resolveMainAbility(info),
@@ -62,7 +62,6 @@ export async function listHarmonyApps(connectKey: string, includeSystem = true):
       }
       if (online.icon) {
         app.icon = online.icon
-        app.iconMimeType = online.iconMimeType
       }
     } catch (e) {
       logger.debug('online info failed', app.packageName, e)

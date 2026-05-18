@@ -8,7 +8,6 @@ const UA =
 export interface OnlineAndroidAppInfo {
   name?: string
   icon?: string
-  iconMimeType?: string
 }
 
 const cache = new Map<string, OnlineAndroidAppInfo>()
@@ -63,31 +62,6 @@ function parseWandoujiaDetails(html: string): { name?: string; iconUrl?: string 
   return { name, iconUrl: iconM?.[1]?.trim() }
 }
 
-async function fetchIconAsBase64(iconUrl: string): Promise<{ b64?: string; mime?: string }> {
-  try {
-    const res = await fetch(iconUrl, {
-      headers: {
-        'User-Agent': UA,
-        Referer: iconUrl.includes('wandoujia') || iconUrl.includes('25pp.com')
-          ? 'https://www.wandoujia.com/'
-          : 'https://app.mi.com/',
-      },
-    })
-    if (!res.ok) {
-      return {}
-    }
-    const mime = res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/png'
-    const buf = Buffer.from(await res.arrayBuffer())
-    if (buf.length < 32) {
-      return {}
-    }
-    return { b64: buf.toString('base64'), mime }
-  } catch (e) {
-    logger.debug('fetch icon failed', iconUrl, e)
-    return {}
-  }
-}
-
 /** 与鸿蒙 `shouldFetchOnlineInfo` 一致：仅第三方应用走在线元数据 */
 export function shouldFetchOnlineAndroidInfo(_packageName: string, isSystem: boolean): boolean {
   return !isSystem
@@ -139,15 +113,8 @@ export async function getOnlineAndroidAppInfo(packageName: string): Promise<Onli
     }
   }
 
-  let icon: string | undefined
-  let iconMimeType: string | undefined
-  if (iconUrl) {
-    const img = await fetchIconAsBase64(iconUrl)
-    icon = img.b64
-    iconMimeType = img.mime
-  }
-
-  const out: OnlineAndroidAppInfo = { name, icon, iconMimeType }
+  logger.debug('resolved icon url', packageName, iconUrl)
+  const out: OnlineAndroidAppInfo = { name, icon: iconUrl }
   cache.set(packageName, out)
   return out
 }

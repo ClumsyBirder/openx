@@ -114,7 +114,6 @@ async function enrichUserAppsMetadata(apps: DeviceApp[]): Promise<void> {
       }
       if (online.icon) {
         app.icon = online.icon
-        app.iconMimeType = online.iconMimeType
       }
     } catch (e) {
       logger.debug('online android info failed', app.packageName, e)

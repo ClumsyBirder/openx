@@ -126,6 +126,17 @@
 }
 
 
+/* tui-image-editor: hide header (logo + load/download buttons) */
+.tui-screenshot-editor .tui-image-editor-header {
+  display: none !important;
+}
+.tui-screenshot-editor .tui-image-editor-container {
+  background-color: transparent !important;
+}
+.tui-screenshot-editor .tui-image-editor-wrap {
+  top: 0 !important;
+}
+
 /* 无边框窗口拖拽区域 */
 .drag-region {
   -webkit-app-region: drag;
